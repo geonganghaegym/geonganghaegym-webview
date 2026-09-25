@@ -14,6 +14,8 @@ import 'dart:io';
 
 import 'firebase_options.dart';
 
+const kWebBaseUrl = 'https://geonganghaegym.junghaebom.com';
+
 // 백그라운드 설정 코드는 맨 최상단에 위치해야함
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint('Handling a background message ${message.messageId}');
@@ -188,7 +190,7 @@ class _MyAppState extends State<MyApp> {
           body: InAppWebView(
             key: webViewKey,
             initialUrlRequest: URLRequest(
-              url: WebUri("https://geonganghaejim.site/"),
+              url: WebUri("$kWebBaseUrl/"),
             ),
             initialSettings: InAppWebViewSettings(
               allowsBackForwardNavigationGestures: true,
@@ -224,7 +226,7 @@ Future<void> sendTokenToServer(int memberId, String fcmToken) async {
   debugPrint('fcmToken => $fcmToken');
   String deviceType = Platform.isIOS ? 'IOS' : 'AOS'; // 플랫폼 타입 결정
   final response = await http.post(
-    Uri.parse('https://geonganghaejim.site/api/v1/push/webview'),
+    Uri.parse('$kWebBaseUrl/api/v1/push/webview'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(
       {'memberId': memberId, 'token': fcmToken, 'deviceType': deviceType},
