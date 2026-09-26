@@ -1,6 +1,6 @@
 name: web_view_app
 description: "건강해짐 애플리케이션"
-version: 1.0.0+3
+version: 1.1.0+4
 publish_to: 'none'
 
 environment:
