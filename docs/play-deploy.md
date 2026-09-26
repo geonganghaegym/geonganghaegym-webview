@@ -71,10 +71,10 @@ Google Group 연결을 지원한다 (`googleGroups[]` 필드). `scripts/play-tes
 
 ```sh
 # 처음에는 반드시 DRY_RUN으로 실제 track ID를 확인한다 (커밋 생략)
-DRY_RUN=1 ./scripts/play-testers.sh alpha geonganghaejim-testers@googlegroups.com
+DRY_RUN=1 ./scripts/play-testers.sh alpha geonganghaegym-testers@googlegroups.com
 
 # 확인한 track ID로 실행
-./scripts/play-testers.sh <실제-track-id> geonganghaejim-testers@googlegroups.com
+./scripts/play-testers.sh <실제-track-id> geonganghaegym-testers@googlegroups.com
 ```
 
 **`alpha`는 추측값이다.** Play Console 표시 라벨("비공개 테스트 - Alpha")과 API track ID는
@@ -162,7 +162,7 @@ https://play.google.com/console/u/0/developers/<devId>/app/<appId>/tracks/produc
 async (page) => {
   await page.goto('https://play.google.com/console/u/0/developers/8629066469075651458/app/<appId>/tracks/closed-testing');
   await page.getByRole('button', { name: '테스터' }).click();
-  await page.getByRole('textbox', { name: /이메일/ }).fill('geonganghaejim-testers@googlegroups.com');
+  await page.getByRole('textbox', { name: /이메일/ }).fill('geonganghaegym-testers@googlegroups.com');
   await page.getByRole('button', { name: '저장' }).click();
   return await page.getByRole('status').first().textContent();
 }
