@@ -43,7 +43,16 @@ Play Console을 브라우저로 조작하는 대신 **Gradle Play Publisher(GPP)
   없으면 `play { enabled = ... }`가 자동으로 꺼진다(`android/app/build.gradle`).
 - 대표 명령: `flutter build appbundle --release` → `cd android && ./gradlew publishBundle --console=plain`.
   트랙/상태는 `--track` `--release-status` `--user-fraction`으로 CLI에서 덮어쓴다.
-- GPP 버전을 함부로 올리지 않는다 — **4.0.0은 AGP 9.0.0+ 요구, 현재 AGP는 8.13.0**이라 3.13.0 고정.
+- GPP 버전을 함부로 올리지 않는다 — **4.x는 AGP 9.0.0+ 요구, 현재 AGP는 8.13.2**라 3.13.0 고정.
+  2026-09-27 AGP 9.4.0 + GPP 4.1.1로 실제 전환을 시도했으나, `flutter_inappwebview` 6.1.5가 물고 오는
+  `flutter_inappwebview_android` 1.1.3(2026-09-27 기준 pub 최신)의 `android/build.gradle`이 AGP 9에서
+  제거된 `getDefaultProguardFile('proguard-android.txt')`를 호출해 `assembleDebug` 단계에서 즉시
+  실패했다 — 이게 첫 번째로 걸린 차단 요인이고, `kotlin-android` 플러그인과 AGP9 내장 Kotlin 간
+  충돌 등 더 있을 수 있는 이슈는 이 지점 이후를 확인하지 못해 알 수 없다. AGP 9 전환은 이 플러그인
+  이슈가 해소된 뒤 재시도한다.
+  **AGP 8.x는 Gradle 9.6.0+와도 호환되지 않는다**(AGP 8.x가 쓰는 Gradle 내부 API가 9.6.0에서 제거됨,
+  https://docs.gradle.org/current/userguide/upgrading_version_9.html 참조) — Gradle 래퍼는 9.5.x
+  마지막 버전인 9.5.1로 고정한다. 9.6.0 이상으로 올리려면 AGP 9으로 먼저 전환해야 한다.
 - 테스터 그룹(Google Group) 연결은 `scripts/play-testers.sh`로 한다. **반드시 `DRY_RUN=1`으로
   실제 track ID를 먼저 확인**한 뒤 커밋 — track ID 라벨과 실제 API ID가 다를 수 있어, 틀리면
   엉뚱한 트랙의 테스터 설정을 덮어쓴다.

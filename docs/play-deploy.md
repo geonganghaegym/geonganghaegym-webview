@@ -13,8 +13,13 @@ Playwright MCP로 Play Console을 조작하면 클릭 한 번마다 페이지 �
 
 | 항목 | 값 |
 |---|---|
-| GPP | **3.13.0** (4.0.0은 AGP 9.0.0+ 요구 → 현재 AGP 8.13.0에서 적용 실패) |
-| Gradle / AGP | 9.1.0 / 8.13.0 — GPP 3.13.0으로 태스크 등록 확인 |
+| GPP | **3.13.0** (4.x는 AGP 9.0.0+ 요구 → 현재 AGP 8.13.2에서 적용 실패) |
+| Gradle / AGP | 9.5.1 / 8.13.2 — `./gradlew :app:tasks --all`로 `publishBundle` 등 GPP 태스크가
+  실제 등록되는 것까지 확인(2026-09-27, `play-service-account.json` 없이도 태스크는 등록됨).
+  같은 날 AGP 9.4.0+GPP 4.1.1 전환을 시도했으나 `flutter_inappwebview_android` 1.1.3(당시 pub 최신)이
+  AGP 9에서 제거된 `getDefaultProguardFile('proguard-android.txt')`를 호출해 `assembleDebug`에서
+  실패(첫 차단 요인, 그 이후 단계는 미확인), AGP 8.13.2 유지.
+  AGP 8.x는 Gradle 9.6.0+와 비호환(내부 API 제거)이라 Gradle은 9.5.x 최신인 9.5.1로 고정 |
 | 적용 위치 | `android/settings.gradle`(플러그인 선언), `android/app/build.gradle`(`play {}` 블록) |
 | 자격증명 | `android/play-service-account.json` (gitignore 처리됨, **없으면 자동 비활성화**) |
 
