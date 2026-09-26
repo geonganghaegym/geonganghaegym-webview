@@ -5,7 +5,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 프로젝트 개요
 
 "건강해짐"(geonganghaejim) 앱을 감싸는 얇은 Flutter WebView 래퍼. 실제 화면·로직은 전부
-`https://geonganghaejim.site` 웹앱에 있고, 이 레포는 다음만 담당한다:
+`https://geonganghaegym.junghaebom.com` 웹앱에 있고(`lib/main.dart`의 `kWebBaseUrl`. 출시된 iOS 1.0은
+아직 옛 도메인 `geonganghaejim.site`를 연다), 이 레포는 다음만 담당한다:
 
 - `flutter_inappwebview`로 그 URL을 전체 화면에 띄운다 (`lib/main.dart`).
 - Firebase Cloud Messaging으로 푸시 알림을 받아 로컬 알림으로 표시한다.
