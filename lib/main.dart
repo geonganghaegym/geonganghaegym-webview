@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -23,19 +25,17 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 final storage = FlutterSecureStorage(); // Secure Storage 인스턴스 생성
 
+/// 웹뷰 로딩과 병렬로 도는 네이티브 초기화. FCM을 쓰는 곳은 이걸 기다린다.
+late final Future<void> nativeInit;
+
+/// 스플래시가 내려가면 완료된다. 스플래시 위에 시스템 권한 팝업이 뜨면(iOS) 스플래시가 팝업에 답할 때까지
+/// 내려가지 않으므로, 권한 요청은 이걸 기다린 뒤에 한다.
+final splashRemoved = Completer<void>();
+
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  if (Firebase.apps.isEmpty) {
-    await Firebase.initializeApp(
-      name: "건강해짐",
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  }
-
-  await Permission.camera.request();
-
-  await fcmSetting();
+  // 첫 페이지 로딩이 끝날 때까지 네이티브 스플래시를 유지한다(흰 웹뷰가 보이지 않게).
+  FlutterNativeSplash.preserve(
+      widgetsBinding: WidgetsFlutterBinding.ensureInitialized());
 
   if (!kIsWeb &&
       kDebugMode &&
@@ -43,12 +43,30 @@ Future<void> main() async {
     await InAppWebViewController.setWebContentsDebuggingEnabled(kDebugMode);
   }
 
-  SystemChrome.setPreferredOrientations([
+  await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
-  ]).then((_) {
-    runApp(const MaterialApp(home: MyApp()));
-  });
+  ]);
+
+  // 권한 팝업에 답할 때까지 웹뷰가 뜨지 않던 문제 — 화면부터 띄우고 초기화는 뒤에서 한다.
+  runApp(const MaterialApp(home: MyApp()));
+  nativeInit = _initNative();
+}
+
+Future<void> _initNative() async {
+  if (Firebase.apps.isEmpty) {
+    await Firebase.initializeApp(
+      name: "건강해짐",
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  }
+
+  await splashRemoved.future;
+
+  // 권한 요청은 동시에 띄우면 충돌하므로 순서대로 한다.
+  await Permission.camera.request();
+
+  await fcmSetting();
 }
 
 class MyApp extends StatefulWidget {
@@ -149,6 +167,21 @@ class _MyAppState extends State<MyApp> {
   final GlobalKey webViewKey = GlobalKey();
   InAppWebViewController? _webViewController;
   DateTime? _lastBackPressed;
+  bool _splashRemoved = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 네트워크가 느리거나 끊겨도 스플래시에 갇히지 않게 상한을 둔다.
+    Future.delayed(const Duration(seconds: 5), _removeSplash);
+  }
+
+  void _removeSplash() {
+    if (_splashRemoved) return;
+    _splashRemoved = true;
+    FlutterNativeSplash.remove();
+    splashRemoved.complete();
+  }
 
   /// 웹뷰 히스토리가 남아 있으면 웹뷰 안에서 뒤로 이동하고,
   /// 더 이상 뒤로 갈 곳이 없으면 2초 안에 두 번 눌러야 앱을 종료한다.
@@ -185,9 +218,11 @@ class _MyAppState extends State<MyApp> {
         if (didPop) return;
         _handleBack();
       },
-      child: SafeArea(
-        child: Scaffold(
-          body: InAppWebView(
+      // Scaffold가 SafeArea 바깥에 있어야 상태바 영역까지 배경색이 칠해진다(안쪽이면 검은 띠).
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: InAppWebView(
             key: webViewKey,
             initialUrlRequest: URLRequest(
               url: WebUri("$kWebBaseUrl/"),
@@ -197,6 +232,10 @@ class _MyAppState extends State<MyApp> {
               javaScriptEnabled: true,
               javaScriptCanOpenWindowsAutomatically: true,
             ),
+            onLoadStop: (controller, url) => _removeSplash(),
+            onReceivedError: (controller, request, error) {
+              if (request.isForMainFrame ?? true) _removeSplash();
+            },
             onWebViewCreated: (controller) {
               _webViewController = controller;
               controller.addJavaScriptHandler(
@@ -204,6 +243,7 @@ class _MyAppState extends State<MyApp> {
                 callback: (args) async {
                   // 로그인 성공 시 FCM 토큰 발급 및 백엔드로 전송
                   int memberId = args[0];
+                  await nativeInit;
                   await storage.write(
                       key: 'memberId', value: memberId.toString());
                   String? fcmToken =
