@@ -232,7 +232,10 @@ class _MyAppState extends State<MyApp> {
               javaScriptEnabled: true,
               javaScriptCanOpenWindowsAutomatically: true,
             ),
-            onLoadStop: (controller, url) => _removeSplash(),
+            onLoadStop: (controller, url) {
+              _removeSplash();
+              shareTokenWithWeb(controller, url);
+            },
             onReceivedError: (controller, request, error) {
               if (request.isForMainFrame ?? true) _removeSplash();
             },
@@ -258,6 +261,25 @@ class _MyAppState extends State<MyApp> {
         ),
       ),
     );
+  }
+}
+
+/// 웹 로그아웃이 이 기기 토큰만 지우도록, 웹이 로그아웃 때 읽는 localStorage 키에 FCM 토큰을 넣어 둔다.
+/// 페이지를 로드할 때마다 넣으므로 토큰이 갱신돼도 다음 로드부터 맞춰진다.
+Future<void> shareTokenWithWeb(
+    InAppWebViewController controller, WebUri? url) async {
+  // 소셜 로그인 등 외부 페이지의 localStorage에는 토큰을 남기지 않는다.
+  if (url?.host != Uri.parse(kWebBaseUrl).host) return;
+  try {
+    await nativeInit;
+    final fcmToken = await FirebaseMessaging.instance.getToken();
+    if (fcmToken == null) return;
+    await controller.evaluateJavascript(
+      source:
+          "localStorage.setItem('serviceWorkerRegistration', ${jsonEncode(fcmToken)});",
+    );
+  } catch (e) {
+    debugPrint('웹에 FCM 토큰 전달 실패: $e');
   }
 }
 
